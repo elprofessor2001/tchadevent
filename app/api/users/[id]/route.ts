@@ -33,7 +33,7 @@ export async function GET(
         name: true,
         role: true,
         verified: true,
-        created_at: true,
+        createdAt: true,
       },
     })
 
@@ -41,7 +41,13 @@ export async function GET(
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
     }
 
-    return NextResponse.json(targetUser)
+    // Mapper createdAt vers created_at pour la compatibilité avec le frontend
+    const userWithSnakeCase = {
+      ...targetUser,
+      created_at: targetUser.createdAt,
+    }
+
+    return NextResponse.json(userWithSnakeCase)
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Erreur lors de la récupération' }, { status: 500 })
@@ -115,11 +121,17 @@ export async function PUT(
         name: true,
         role: true,
         verified: true,
-        created_at: true,
+        createdAt: true,
       },
     })
 
-    return NextResponse.json(updatedUser)
+    // Mapper createdAt vers created_at pour la compatibilité avec le frontend
+    const userWithSnakeCase = {
+      ...updatedUser,
+      created_at: updatedUser.createdAt,
+    }
+
+    return NextResponse.json(userWithSnakeCase)
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Erreur lors de la modification' }, { status: 500 })
