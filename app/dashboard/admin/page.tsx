@@ -42,13 +42,47 @@ export default function AdminDashboard() {
         }),
       ])
 
-      const usersData = await usersRes.json()
-      const eventsData = await eventsRes.json()
+      // Vérifier que les réponses sont OK
+      if (!usersRes.ok) {
+        const errorData = await usersRes.json().catch(() => ({}))
+        console.error('Erreur API users:', usersRes.status, usersRes.statusText, errorData)
+        
+        // Si l'utilisateur n'est pas admin, rediriger vers la page de connexion
+        if (usersRes.status === 403) {
+          alert('Accès refusé. Vous devez être administrateur pour accéder à cette page. Veuillez vous reconnecter.')
+          router.push('/login?redirect=/dashboard/admin')
+          return
+        }
+        
+        setUsers([])
+      } else {
+        const usersData = await usersRes.json()
+        // Vérifier que usersData est un tableau
+        if (Array.isArray(usersData)) {
+          setUsers(usersData)
+        } else {
+          console.error('La réponse API users n\'est pas un tableau:', usersData)
+          setUsers([])
+        }
+      }
 
-      setUsers(usersData)
-      setEvents(eventsData)
+      if (!eventsRes.ok) {
+        console.error('Erreur API events:', eventsRes.status, eventsRes.statusText)
+        setEvents([])
+      } else {
+        const eventsData = await eventsRes.json()
+        // Vérifier que eventsData est un tableau
+        if (Array.isArray(eventsData)) {
+          setEvents(eventsData)
+        } else {
+          console.error('La réponse API events n\'est pas un tableau:', eventsData)
+          setEvents([])
+        }
+      }
     } catch (error) {
       console.error('Erreur:', error)
+      setUsers([])
+      setEvents([])
     } finally {
       setLoading(false)
     }

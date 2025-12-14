@@ -8,7 +8,11 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const event = await prisma.events.update({
+    const eventModel = (prisma as any).event || (prisma as any).events
+    if (!eventModel) {
+      return NextResponse.json({ error: 'Prisma Event model not available' }, { status: 500 })
+    }
+    const event = await eventModel.update({
       where: { id: parseInt(id) },
       data: {
         views: {

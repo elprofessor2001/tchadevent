@@ -49,10 +49,26 @@ export default function ReservationsPage() {
           'Authorization': `Bearer ${token}`,
         },
       })
+
+      if (!res.ok) {
+        console.error('Erreur API bookings:', res.status, res.statusText)
+        setBookings([])
+        setLoading(false)
+        return
+      }
+
       const data = await res.json()
-      setBookings(data)
+      
+      // Vérifier que data est un tableau
+      if (Array.isArray(data)) {
+        setBookings(data)
+      } else {
+        console.error('La réponse API bookings n\'est pas un tableau:', data)
+        setBookings([])
+      }
     } catch (error) {
       console.error('Erreur:', error)
+      setBookings([])
     } finally {
       setLoading(false)
     }

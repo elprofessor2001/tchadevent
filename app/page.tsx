@@ -50,14 +50,32 @@ export default function Home() {
   const fetchPopularEvents = async () => {
     try {
       const res = await fetch('/api/events')
+      
+      if (!res.ok) {
+        console.error('Erreur API:', res.status, res.statusText)
+        setPopularEvents([])
+        setLoading(false)
+        return
+      }
+
       const data = await res.json()
+      
+      // Vérifier que data est un tableau
+      if (!Array.isArray(data)) {
+        console.error('La réponse API n\'est pas un tableau:', data)
+        setPopularEvents([])
+        setLoading(false)
+        return
+      }
+
       const upcoming = data
-        .filter((e: Event) => new Date(e.event_date) > new Date())
+        .filter((e: Event) => e.event_date && new Date(e.event_date) > new Date())
         .sort((a: Event, b: Event) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
         .slice(0, 6)
       setPopularEvents(upcoming)
     } catch (error) {
       console.error('Erreur lors du chargement des événements:', error)
+      setPopularEvents([])
     } finally {
       setLoading(false)
     }

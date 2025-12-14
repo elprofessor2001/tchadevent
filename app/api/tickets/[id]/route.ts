@@ -20,8 +20,8 @@ export async function PUT(
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const user = await prisma.users.findUnique({ where: { id: userId } })
-    const ticket = await prisma.tickets.findUnique({
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const ticket = await prisma.ticket.findUnique({
       where: { id: parseInt(id) },
       include: { event: true },
     })
@@ -30,14 +30,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Billet non trouvé' }, { status: 404 })
     }
 
-    if (user?.role !== 'admin' && ticket.event.organizer_id !== userId) {
+    if (user?.role !== 'admin' && ticket.event.organizerId !== userId) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
     const body = await req.json()
     const { name, price, quantity } = body
 
-    const updatedTicket = await prisma.tickets.update({
+    const updatedTicket = await prisma.ticket.update({
       where: { id: parseInt(id) },
       data: {
         name,
@@ -69,8 +69,8 @@ export async function DELETE(
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const user = await prisma.users.findUnique({ where: { id: userId } })
-    const ticket = await prisma.tickets.findUnique({
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const ticket = await prisma.ticket.findUnique({
       where: { id: parseInt(id) },
       include: { event: true },
     })
@@ -79,11 +79,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Billet non trouvé' }, { status: 404 })
     }
 
-    if (user?.role !== 'admin' && ticket.event.organizer_id !== userId) {
+    if (user?.role !== 'admin' && ticket.event.organizerId !== userId) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    await prisma.tickets.delete({
+    await prisma.ticket.delete({
       where: { id: parseInt(id) },
     })
 

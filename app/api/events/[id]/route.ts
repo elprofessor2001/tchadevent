@@ -11,7 +11,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const event = await prisma.events.findUnique({
+    const eventModel = (prisma as any).event || (prisma as any).events
+    if (!eventModel) {
+      return NextResponse.json({ error: 'Prisma Event model not available' }, { status: 500 })
+    }
+    const event = await eventModel.findUnique({
       where: { id: parseInt(id) },
       include: {
         organizer: {
@@ -51,8 +55,13 @@ export async function PUT(
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const user = await prisma.users.findUnique({ where: { id: userId } })
-    const event = await prisma.events.findUnique({ where: { id: parseInt(id) } })
+    const eventModel = (prisma as any).event || (prisma as any).events
+    if (!eventModel) {
+      return NextResponse.json({ error: 'Prisma Event model not available' }, { status: 500 })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const event = await eventModel.findUnique({ where: { id: parseInt(id) } })
 
     if (!event) {
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 })
@@ -66,7 +75,7 @@ export async function PUT(
     const { title, description, location, event_date, image, category, tickets } = body
 
     // Mettre à jour l'événement
-    const updatedEvent = await prisma.events.update({
+    const updatedEvent = await eventModel.update({
       where: { id: parseInt(id) },
       data: {
         title,
@@ -84,8 +93,8 @@ export async function PUT(
     // Gérer les tickets si fournis
     if (tickets && Array.isArray(tickets)) {
       // Récupérer les tickets existants
-      const existingTickets = await prisma.tickets.findMany({
-        where: { event_id: parseInt(id) },
+      const existingTickets = await prisma.ticket.findMany({
+        where: { eventId: parseInt(id) },
       })
 
       const existingTicketIds = existingTickets.map(t => t.id)
@@ -98,10 +107,10 @@ export async function PUT(
         id => !providedTicketIds.includes(id)
       )
       if (ticketsToDelete.length > 0) {
-        await prisma.tickets.deleteMany({
+        await prisma.ticket.deleteMany({
           where: {
             id: { in: ticketsToDelete },
-            event_id: parseInt(id),
+            eventId: parseInt(id),
           },
         })
       }
@@ -110,7 +119,7 @@ export async function PUT(
       for (const ticket of tickets) {
         if (ticket.id) {
           // Mettre à jour un ticket existant
-          await prisma.tickets.update({
+          await prisma.ticket.update({
             where: { id: ticket.id },
             data: {
               name: ticket.name,
@@ -120,9 +129,9 @@ export async function PUT(
           })
         } else {
           // Créer un nouveau ticket
-          await prisma.tickets.create({
+          await prisma.ticket.create({
             data: {
-              event_id: parseInt(id),
+              eventId: parseInt(id),
               name: ticket.name,
               price: ticket.price || 0,
               quantity: ticket.quantity || 0,
@@ -133,7 +142,7 @@ export async function PUT(
     }
 
     // Retourner l'événement mis à jour avec ses tickets
-    const finalEvent = await prisma.events.findUnique({
+    const finalEvent = await eventModel.findUnique({
       where: { id: parseInt(id) },
       include: {
         tickets: true,
@@ -163,8 +172,12 @@ export async function DELETE(
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const user = await prisma.users.findUnique({ where: { id: userId } })
-    const event = await prisma.events.findUnique({ where: { id: parseInt(id) } })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const eventModel = (prisma as any).event || (prisma as any).events
+    if (!eventModel) {
+      return NextResponse.json({ error: 'Prisma Event model not available' }, { status: 500 })
+    }
+    const event = await eventModel.findUnique({ where: { id: parseInt(id) } })
 
     if (!event) {
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 })
@@ -174,7 +187,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    await prisma.events.delete({
+    await eventModel.delete({
       where: { id: parseInt(id) },
     })
 

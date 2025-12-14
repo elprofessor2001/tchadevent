@@ -17,7 +17,7 @@ export async function DELETE(req: Request) {
     const userId = decoded.userId
 
     // Vérifier que l'utilisateur est admin
-    const adminUser = await prisma.users.findUnique({ where: { id: userId } })
+    const adminUser = await prisma.user.findUnique({ where: { id: userId } })
     if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json({ error: 'Seul un administrateur peut supprimer des utilisateurs' }, { status: 403 })
     }
@@ -34,7 +34,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Vous ne pouvez pas vous supprimer vous-même' }, { status: 400 })
     }
 
-    const targetUser = await prisma.users.findUnique({ where: { id: targetUserId } })
+    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } })
     if (!targetUser) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
     }
@@ -46,7 +46,7 @@ export async function DELETE(req: Request) {
       }, { status: 400 })
     }
 
-    await prisma.users.delete({ where: { id: targetUserId } })
+    await prisma.user.delete({ where: { id: targetUserId } })
 
     return NextResponse.json({ 
       success: true, 

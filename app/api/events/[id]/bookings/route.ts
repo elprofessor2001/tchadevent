@@ -11,8 +11,8 @@ export async function GET(
     const eventId = parseInt(id)
 
     // Récupérer tous les billets de l'événement
-    const tickets = await prisma.tickets.findMany({
-      where: { event_id: eventId },
+    const tickets = await prisma.ticket.findMany({
+      where: { eventId: eventId },
       include: {
         bookings: true,
       },

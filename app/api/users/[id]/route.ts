@@ -20,12 +20,12 @@ export async function GET(
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const user = await prisma.users.findUnique({ where: { id: userId } })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const targetUser = await prisma.users.findUnique({
+    const targetUser = await prisma.user.findUnique({
       where: { id: parseInt(id) },
       select: {
         id: true,
@@ -65,7 +65,7 @@ export async function PUT(
     const userId = decoded.userId
 
     // Vérifier que l'utilisateur est admin
-    const adminUser = await prisma.users.findUnique({ where: { id: userId } })
+    const adminUser = await prisma.user.findUnique({ where: { id: userId } })
     if (!adminUser || adminUser.role !== 'admin') {
       return NextResponse.json({ error: 'Seul un administrateur peut modifier les rôles' }, { status: 403 })
     }
@@ -84,7 +84,7 @@ export async function PUT(
     // SÉCURITÉ : Vérifier qu'il n'y a qu'un seul admin
     if (role === 'admin') {
       // Vérifier s'il y a déjà un admin
-      const existingAdmin = await prisma.users.findFirst({
+      const existingAdmin = await prisma.user.findFirst({
         where: {
           role: 'admin',
           id: { not: targetUserId }, // Exclure l'utilisateur actuel
@@ -106,7 +106,7 @@ export async function PUT(
     }
 
     // Mettre à jour l'utilisateur
-    const updatedUser = await prisma.users.update({
+    const updatedUser = await prisma.user.update({
       where: { id: targetUserId },
       data: { role: role as 'client' | 'organisateur' | 'admin' },
       select: {

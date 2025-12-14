@@ -13,29 +13,57 @@ export async function GET(req: Request) {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const decoded = verifyToken(token) as any
-    const userId = decoded.userId
-
-    // Vérifier que l'utilisateur est admin
-    const user = await prisma.users.findUnique({ where: { id: userId } })
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé. Admin uniquement.' }, { status: 403 })
+    let decoded: any
+    try {
+      decoded = verifyToken(token) as any
+    } catch (error) {
+      console.error('Token invalide:', error)
+      return NextResponse.json({ error: 'Token invalide ou expiré' }, { status: 401 })
     }
 
-    const users = await prisma.users.findMany({
+    const userId = decoded.userId
+    if (!userId) {
+      console.error('userId manquant dans le token')
+      return NextResponse.json({ error: 'Token invalide' }, { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur est admin
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      console.error('Utilisateur non trouvé pour userId:', userId)
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+    }
+
+    console.log('Utilisateur trouvé:', { id: user.id, email: user.email, role: user.role })
+
+    if (user.role !== 'admin') {
+      console.error('Accès refusé - Rôle:', user.role, 'pour userId:', userId)
+      return NextResponse.json({ 
+        error: 'Accès refusé. Admin uniquement.',
+        details: `Rôle actuel: ${user.role}`
+      }, { status: 403 })
+    }
+
+    const users = await prisma.user.findMany({
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
         verified: true,
-        created_at: true,
+        createdAt: true,
       },
       orderBy: {
-        created_at: 'desc',
+        createdAt: 'desc',
       },
     })
-    return NextResponse.json(users)
+
+    // Mapper createdAt vers created_at pour la compatibilité avec le frontend
+    const usersWithSnakeCase = users.map(user => ({
+      ...user,
+      created_at: user.createdAt,
+    }))
+    return NextResponse.json(usersWithSnakeCase)
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Impossible de récupérer les utilisateurs' }, { status: 500 })

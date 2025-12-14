@@ -16,8 +16,14 @@ export async function GET(req: Request) {
     const decoded = verifyToken(token) as any
     const userId = decoded.userId
 
-    const bookings = await prisma.bookings.findMany({
-      where: { user_id: userId },
+    // Utiliser le modèle Booking (Prisma convertit automatiquement en minuscule)
+    const bookingModel = (prisma as any).booking || (prisma as any).bookings
+    if (!bookingModel) {
+      return NextResponse.json({ error: 'Prisma Booking model not available' }, { status: 500 })
+    }
+
+    const bookings = await bookingModel.findMany({
+      where: { userId: userId },
       include: {
         ticket: {
           include: {
@@ -25,7 +31,7 @@ export async function GET(req: Request) {
               select: {
                 id: true,
                 title: true,
-                event_date: true,
+                eventDate: true,
                 location: true,
                 image: true,
               },
@@ -34,11 +40,24 @@ export async function GET(req: Request) {
         },
       },
       orderBy: {
-        created_at: 'desc',
+        createdAt: 'desc',
       },
     })
 
-    return NextResponse.json(bookings)
+    // Mapper les champs camelCase vers snake_case pour la compatibilité avec le frontend
+    const bookingsWithSnakeCase = bookings.map((booking: any) => ({
+      ...booking,
+      created_at: booking.createdAt,
+      ticket: {
+        ...booking.ticket,
+        event: {
+          ...booking.ticket.event,
+          event_date: booking.ticket.event.eventDate,
+        },
+      },
+    }))
+
+    return NextResponse.json(bookingsWithSnakeCase)
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Impossible de récupérer les réservations' }, { status: 500 })
@@ -60,8 +79,14 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { ticket_id, quantity } = body
 
+    // Utiliser le modèle Ticket
+    const ticketModel = (prisma as any).ticket || (prisma as any).tickets
+    if (!ticketModel) {
+      return NextResponse.json({ error: 'Prisma Ticket model not available' }, { status: 500 })
+    }
+
     // Vérifier que le billet existe et a de la disponibilité
-    const ticket = await prisma.tickets.findUnique({
+    const ticket = await ticketModel.findUnique({
       where: { id: ticket_id },
       include: {
         event: true,
@@ -74,18 +99,24 @@ export async function POST(req: Request) {
     }
 
     // Calculer les billets déjà réservés
-    const bookedQuantity = ticket.bookings.reduce((sum, booking) => sum + (booking.quantity || 0), 0)
+    const bookedQuantity = ticket.bookings.reduce((sum: number, booking: any) => sum + (booking.quantity || 0), 0)
     const available = (ticket.quantity || 0) - bookedQuantity
 
     if (available < quantity) {
       return NextResponse.json({ error: 'Pas assez de billets disponibles' }, { status: 400 })
     }
 
+    // Utiliser le modèle Booking
+    const bookingModel = (prisma as any).booking || (prisma as any).bookings
+    if (!bookingModel) {
+      return NextResponse.json({ error: 'Prisma Booking model not available' }, { status: 500 })
+    }
+
     // Créer la réservation
-    const booking = await prisma.bookings.create({
+    const booking = await bookingModel.create({
       data: {
-        user_id: userId,
-        ticket_id,
+        userId: userId,
+        ticketId: ticket_id,
         quantity,
       },
       include: {
@@ -95,7 +126,7 @@ export async function POST(req: Request) {
               select: {
                 id: true,
                 title: true,
-                event_date: true,
+                eventDate: true,
                 location: true,
               },
             },
@@ -104,7 +135,20 @@ export async function POST(req: Request) {
       },
     })
 
-    return NextResponse.json(booking, { status: 201 })
+    // Mapper les champs camelCase vers snake_case pour la compatibilité avec le frontend
+    const bookingWithSnakeCase = {
+      ...booking,
+      created_at: booking.createdAt,
+      ticket: {
+        ...booking.ticket,
+        event: {
+          ...booking.ticket.event,
+          event_date: booking.ticket.event.eventDate,
+        },
+      },
+    }
+
+    return NextResponse.json(bookingWithSnakeCase, { status: 201 })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Erreur lors de la réservation' }, { status: 500 })
