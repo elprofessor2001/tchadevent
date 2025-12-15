@@ -66,7 +66,20 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        const errorMessage = data.error || 'Erreur d\'inscription'
+        // Afficher l'erreur détaillée pour le débogage
+        let errorMessage = data.error || data.details || 'Erreur d\'inscription'
+        
+        // Ajouter les détails de diagnostic si disponibles
+        if (data.details && data.details !== errorMessage) {
+          errorMessage += ` (${data.details})`
+        }
+        
+        console.error('Register API Error:', { 
+          status: res.status, 
+          error: data,
+          fullResponse: data 
+        })
+        
         setError(errorMessage)
         
         if (errorMessage.includes('déjà utilisé') || errorMessage.includes('Email')) {
@@ -84,8 +97,10 @@ export default function RegisterPage() {
       setToken(data.token)
       setUser(data.user)
       router.push('/')
-    } catch (err) {
-      setError('Erreur d\'inscription')
+    } catch (err: any) {
+      console.error('Register error:', err)
+      const errorMessage = err?.message || 'Erreur d\'inscription'
+      setError(`Erreur d'inscription: ${errorMessage}`)
       setLoading(false)
     }
   }
@@ -147,7 +162,23 @@ export default function RegisterPage() {
             const data = await res.json()
 
             if (!res.ok) {
-              setError(data.error || 'Erreur de connexion Google')
+              // Afficher l'erreur détaillée pour le débogage
+              let errorMessage = data.error || data.details || 'Erreur de connexion Google'
+              
+              // Ajouter les détails de diagnostic si disponibles
+              if (data.diagnostics) {
+                const diagnostics = Object.entries(data.diagnostics)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(', ')
+                errorMessage += ` (${diagnostics})`
+              }
+              
+              console.error('OAuth API Error:', { 
+                status: res.status, 
+                error: data,
+                fullResponse: data 
+              })
+              setError(errorMessage)
               setOauthLoading(false)
               return
             }

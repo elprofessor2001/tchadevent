@@ -54,7 +54,21 @@ function LoginForm() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Erreur de connexion')
+        // Afficher l'erreur détaillée pour le débogage
+        let errorMessage = data.error || data.details || 'Erreur de connexion'
+        
+        // Ajouter les détails de diagnostic si disponibles
+        if (data.details && data.details !== errorMessage) {
+          errorMessage += ` (${data.details})`
+        }
+        
+        console.error('Login API Error:', { 
+          status: res.status, 
+          error: data,
+          fullResponse: data 
+        })
+        
+        setError(errorMessage)
         setLoading(false)
         return
       }
@@ -63,8 +77,10 @@ function LoginForm() {
       setUser(data.user)
       const redirect = searchParams.get('redirect')
       router.push(redirect ? decodeURIComponent(redirect) : '/')
-    } catch (err) {
-      setError('Erreur de connexion')
+    } catch (err: any) {
+      console.error('Login error:', err)
+      const errorMessage = err?.message || 'Erreur de connexion'
+      setError(`Erreur de connexion: ${errorMessage}`)
       setLoading(false)
     }
   }
@@ -126,7 +142,23 @@ function LoginForm() {
             const data = await res.json()
 
             if (!res.ok) {
-              setError(data.error || 'Erreur de connexion Google')
+              // Afficher l'erreur détaillée pour le débogage
+              let errorMessage = data.error || data.details || 'Erreur de connexion Google'
+              
+              // Ajouter les détails de diagnostic si disponibles
+              if (data.diagnostics) {
+                const diagnostics = Object.entries(data.diagnostics)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(', ')
+                errorMessage += ` (${diagnostics})`
+              }
+              
+              console.error('OAuth API Error:', { 
+                status: res.status, 
+                error: data,
+                fullResponse: data 
+              })
+              setError(errorMessage)
               setOauthLoading(false)
               return
             }

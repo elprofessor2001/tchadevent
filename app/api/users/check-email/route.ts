@@ -17,7 +17,7 @@ export async function GET(req: Request) {
         id: true,
         email: true,
         role: true,
-        created_at: true,
+        createdAt: true,
       },
     })
 
