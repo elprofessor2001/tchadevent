@@ -7,53 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ----------------------------
-// Users
-// ----------------------------
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique @db.VarChar(255)
-  password  String?  @db.VarChar(255)
-  role      String   @default("client") @db.VarChar(50)
-  avatar    String?  @db.Text
-  name      String?  @db.VarChar(255)
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  events    Event[]   @relation("OrganizerEvents")
+  id        Int       @id @default(autoincrement())
+  email     String    @unique @db.VarChar(255)
+  password  String?   @db.VarChar(255)
+  role      String    @default("client") @db.VarChar(50)
+  avatar    String?   @db.Text
+  name      String?   @db.VarChar(255)
+  verified  Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
   bookings  Booking[]
-
-  followers Follow[] @relation("Followers")
-  following Follow[] @relation("Following")
+  events    Event[]   @relation("OrganizerEvents")
+  followers Follow[]  @relation("Followers")
+  following Follow[]  @relation("Following")
 
   @@map("users")
 }
 
-// ----------------------------
-// Follow
-// ----------------------------
 model Follow {
   id          Int      @id @default(autoincrement())
   followerId  Int?     @map("follower_id")
   followingId Int?     @map("following_id")
   createdAt   DateTime @default(now()) @map("created_at")
-
-  follower  User? @relation("Followers", fields: [followerId], references: [id])
-  following User? @relation("Following", fields: [followingId], references: [id])
+  follower    User?    @relation("Followers", fields: [followerId], references: [id])
+  following   User?    @relation("Following", fields: [followingId], references: [id])
 
   @@unique([followerId, followingId])
+  @@index([followingId], map: "follows_following_id_fkey")
   @@map("follows")
 }
 
-// ----------------------------
-// Events
-// ----------------------------
 model Event {
   id          Int       @id @default(autoincrement())
   title       String?   @db.VarChar(255)
   description String?   @db.Text
   location    String?   @db.VarChar(255)
-  eventDate   DateTime? @map("event_date") // ✅ Prisma: eventDate
+  eventDate   DateTime? @map("event_date")
   organizerId Int?      @map("organizer_id")
   image       String?   @db.Text
   category    String?   @db.VarChar(50)
@@ -61,33 +50,27 @@ model Event {
   verified    Boolean   @default(false)
   views       Int       @default(0)
   createdAt   DateTime  @default(now()) @map("created_at")
+  bookings    Booking[]
+  organizer   User?     @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  tickets     Ticket[]
 
-  organizer  User?    @relation("OrganizerEvents", fields: [organizerId], references: [id])
-  tickets    Ticket[]
-  bookings   Booking[]
-
+  @@index([organizerId], map: "events_organizer_id_fkey")
   @@map("events")
 }
 
-// ----------------------------
-// Tickets
-// ----------------------------
 model Ticket {
-  id       Int      @id @default(autoincrement())
-  eventId  Int?     @map("event_id")
-  name     String?  @db.VarChar(255)
+  id       Int       @id @default(autoincrement())
+  eventId  Int?      @map("event_id")
+  name     String?   @db.VarChar(255)
   price    Int?
   quantity Int?
-
-  event    Event?   @relation(fields: [eventId], references: [id])
   bookings Booking[]
+  event    Event?    @relation(fields: [eventId], references: [id])
 
+  @@index([eventId], map: "tickets_event_id_fkey")
   @@map("tickets")
 }
 
-// ----------------------------
-// Bookings
-// ----------------------------
 model Booking {
   id        Int      @id @default(autoincrement())
   userId    Int?     @map("user_id")
@@ -95,10 +78,12 @@ model Booking {
   quantity  Int      @default(1)
   eventId   Int?     @map("event_id")
   createdAt DateTime @default(now()) @map("created_at")
+  event     Event?   @relation(fields: [eventId], references: [id])
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 
-  user   User?   @relation(fields: [userId], references: [id])
-  ticket Ticket? @relation(fields: [ticketId], references: [id])
-  event  Event?  @relation(fields: [eventId], references: [id])
-
+  @@index([eventId], map: "bookings_event_id_fkey")
+  @@index([ticketId], map: "bookings_ticket_id_fkey")
+  @@index([userId], map: "bookings_user_id_fkey")
   @@map("bookings")
 }
